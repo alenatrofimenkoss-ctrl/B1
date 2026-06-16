@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Polski B1 — Przygotowanie</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7A1F2B">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --paper:#F7F3EC;
+  --paper-2:#EFE8DA;
+  --ink:#1F1B16;
+  --ink-soft:#5A5249;
+  --seal:#7A1F2B;
+  --seal-dark:#5E1521;
+  --gold:#D9A441;
+  --ok:#3F6B4F;
+  --ok-bg:#E7EFE5;
+  --bad:#A8392E;
+  --bad-bg:#F6E6E2;
+  --line:#DCD3C0;
+  --radius:14px;
+  --shadow: 0 2px 10px rgba(31,27,22,0.06), 0 1px 2px rgba(31,27,22,0.08);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+
+h1,h2,h3,.serif{font-family:'Lora',serif;}
+
+/* ---------- App shell ---------- */
+#app{max-width:720px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+/* Header */
+.topbar{
+  position:sticky; top:0; z-index:20;
+  background:var(--paper);
+  border-bottom:1px solid var(--line);
+  padding:14px 18px;
+  display:flex; align-items:center; gap:12px;
+  padding-top:calc(14px + env(safe-area-inset-top));
+}
+.topbar .back-btn{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid var(--line); background:var(--paper);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer; flex-shrink:0; color:var(--seal);
+  font-size:18px; user-select:none;
+}
+.topbar .back-btn.hidden{visibility:hidden;}
+.topbar .title{font-family:'Lora',serif; font-weight:600; font-size:18px; flex:1; line-height:1.2;}
+.topbar .title small{display:block;font-family:'Inter';font-weight:400;font-size:12px;color:var(--ink-soft);margin-top:1px;}
+
+/* Seal logo (signature element) */
+.seal{
+  width:34px;height:34px;border-radius:50%;
+  border:2px solid var(--seal);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Lora',serif; font-weight:700; font-size:12px; color:var(--seal);
+  flex-shrink:0;
+  position:relative;
+}
+.seal::after{
+  content:'';position:absolute;inset:3px;border:1px solid var(--seal);border-radius:50%;
+}
+
+main{flex:1; padding:20px 18px 48px;}
+
+/* ---------- Home screen ---------- */
+.hero{
+  text-align:center; padding:28px 10px 22px;
+}
+.hero .seal-big{
+  width:104px;height:104px;border-radius:50%;
+  border:3px solid var(--seal); margin:0 auto 18px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;
+}
+.hero .seal-big::after{content:'';position:absolute;inset:6px;border:1.5px solid var(--seal);border-radius:50%;}
+.hero .seal-big b{font-family:'Lora',serif;font-size:34px;color:var(--seal);font-weight:700;}
+.hero .seal-big span{font-family:'Lora',serif;font-size:9px;letter-spacing:3px;color:var(--seal);margin-top:2px;}
+.hero h1{font-size:26px;margin:0 0 6px;font-weight:600;}
+.hero p{color:var(--ink-soft);font-size:14px;margin:0;line-height:1.5;}
+
+.section-label{
+  font-family:'Lora',serif; font-style:italic; color:var(--ink-soft);
+  font-size:13px; margin:28px 2px 10px; display:flex; align-items:center; gap:8px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--line);}
+
+.menu-grid{display:flex;flex-direction:column;gap:10px;}
+.menu-card{
+  background:#fff; border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px 16px; display:flex; align-items:center; gap:14px;
+  cursor:pointer; box-shadow:var(--shadow); transition:transform .15s, border-color .15s;
+  text-align:left;
+}
+.menu-card:active{transform:scale(0.98);}
+.menu-card .icon-badge{
+  width:44px;height:44px;border-radius:10px;background:var(--paper-2);
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;
+  color:var(--seal); font-family:'Lora',serif; font-weight:600;
+}
+.menu-card .body{flex:1;}
+.menu-card .body .t{font-family:'Lora',serif;font-weight:600;font-size:16px;margin:0 0 2px;}
+.menu-card .body .s{font-size:12.5px;color:var(--ink-soft);margin:0;}
+.menu-card .chev{color:var(--ink-soft);font-size:18px;opacity:.5;}
+.menu-card .progress-pill{
+  font-size:11px; font-weight:600; color:var(--seal); background:var(--paper-2);
+  padding:3px 9px; border-radius:20px; flex-shrink:0; white-space:nowrap;
+}
+.menu-card.disabled{opacity:.45; cursor:default;}
+.menu-card.disabled:active{transform:none;}
+
+/* ---------- Topic list (grammar / exam list) ---------- */
+.topic-list{display:flex;flex-direction:column;gap:8px;}
+.topic-row{
+  background:#fff;border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px; display:flex; align-items:center; gap:12px; cursor:pointer;
+}
+.topic-row .num{
+  font-family:'Lora',serif; color:var(--seal); font-weight:600; font-size:14px;
+  width:28px;height:28px;border-radius:50%;border:1.5px solid var(--seal);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.topic-row .t{flex:1;}
+.topic-row .t .tt{font-weight:600;font-size:15px;font-family:'Lora',serif;}
+.topic-row .t .ts{font-size:12px;color:var(--ink-soft);margin-top:1px;}
+.topic-row .mark{font-size:16px;flex-shrink:0;}
+.topic-row .mark.done{color:var(--ok);}
+
+/* ---------- Lesson content ---------- */
+.lesson-intro{
+  background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px; margin-bottom:18px; font-size:14.5px; line-height:1.65;
+}
+.lesson-intro b{color:var(--seal-dark);}
+
+.case-card{
+  background:#fff;border:1px solid var(--line);border-left:4px solid var(--seal);
+  border-radius:10px; padding:14px 16px; margin-bottom:10px;
+}
+.case-card .head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+.case-card .head .name{font-family:'Lora',serif;font-weight:600;font-size:16px;}
+.case-card .head .q{font-size:13px;color:var(--gold);font-weight:600;}
+.case-card .use{font-size:13.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:6px;}
+.case-card .ex{font-size:14px;background:var(--paper-2);padding:8px 10px;border-radius:8px;line-height:1.55;}
+
+.data-table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--shadow);}
+.data-table caption{font-family:'Lora',serif;font-style:italic;font-size:12.5px;color:var(--ink-soft);text-align:left;margin-bottom:8px;caption-side:top;}
+.data-table th{background:var(--seal);color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:12px;}
+.data-table td{padding:7px 10px;border-bottom:1px solid var(--line);}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:nth-child(even) td{background:var(--paper-2);}
+
+.exceptions-box{
+  background:var(--bad-bg); border:1px solid #E8C9C2; border-radius:var(--radius);
+  padding:16px; margin:16px 0;
+}
+.exceptions-box .lbl{font-family:'Lora',serif;font-weight:600;color:var(--bad);font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.exceptions-box ul{margin:0;padding-left:18px;}
+.exceptions-box li{font-size:13.5px;line-height:1.6;margin-bottom:7px;color:var(--ink);}
+.exceptions-box li:last-child{margin-bottom:0;}
+
+.cta-row{margin-top:22px;}
+.btn{
+  display:block; width:100%; text-align:center; padding:14px 20px;
+  background:var(--seal); color:#fff; border:none; border-radius:12px;
+  font-family:'Inter';font-weight:600;font-size:15px; cursor:pointer;
+  transition:background .15s;
+}
+.btn:active{background:var(--seal-dark);}
+.btn.secondary{background:transparent;color:var(--seal);border:1.5px solid var(--seal);}
+.btn.ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--line);}
+
+/* ---------- Quiz ---------- */
+.quiz-progress{display:flex;gap:5px;margin-bottom:18px;}
+.quiz-progress .dot{flex:1;height:5px;border-radius:3px;background:var(--line);}
+.quiz-progress .dot.done{background:var(--ok);}
+.quiz-progress .dot.current{background:var(--gold);}
+
+.quiz-q{
+  background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px; margin-bottom:18px;
+}
+.quiz-q .qtext{font-family:'Lora',serif;font-size:18px;font-weight:500;line-height:1.45;margin-bottom:4px;}
+.quiz-q .qnum{font-size:12px;color:var(--ink-soft);margin-bottom:10px;}
+
+.opt-list{display:flex;flex-direction:column;gap:9px;}
+.opt{
+  border:1.5px solid var(--line); border-radius:10px; padding:13px 15px;
+  font-size:15px; cursor:pointer; background:#fff; transition:.12s;
+  display:flex; align-items:center; gap:10px;
+}
+.opt .letter{
+  width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;
+  color:var(--ink-soft); flex-shrink:0;
+}
+.opt:active{transform:scale(0.99);}
+.opt.selected{border-color:var(--seal);background:#FBF3F0;}
+.opt.selected .letter{border-color:var(--seal);color:var(--seal);}
+.opt.correct{border-color:var(--ok);background:var(--ok-bg);}
+.opt.correct .letter{border-color:var(--ok);background:var(--ok);color:#fff;}
+.opt.incorrect{border-color:var(--bad);background:var(--bad-bg);}
+.opt.incorrect .letter{border-color:var(--bad);background:var(--bad);color:#fff;}
+.opt.disabled{cursor:default;}
+
+.explain-box{
+  margin-top:14px; padding:13px 15px; border-radius:10px;
+  background:var(--paper-2); font-size:13.5px; line-height:1.55;
+  border-left:3px solid var(--gold);
+}
+.explain-box b{color:var(--seal-dark);}
+
+.quiz-nav{display:flex; gap:10px; margin-top:4px;}
+.quiz-nav .btn{flex:1;}
+
+/* result screen */
+.result-seal{
+  width:130px;height:130px;border-radius:50%;border:3px solid var(--seal);
+  margin:10px auto 20px; display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;
+}
+.result-seal::after{content:'';position:absolute;inset:7px;border:1.5px solid var(--seal);border-radius:50%;}
+.result-seal .pct{font-family:'Lora',serif;font-size:36px;font-weight:700;color:var(--seal);}
+.result-seal .lbl{font-size:10px;letter-spacing:2px;color:var(--seal);font-family:'Lora',serif;}
+
+.empty-state{
+  text-align:center; padding:60px 20px; color:var(--ink-soft);
+}
+.empty-state .ic{font-size:40px;margin-bottom:14px;opacity:.5;}
+.empty-state p{font-size:14px;line-height:1.6;}
+
+/* Install hint */
+.install-hint{
+  background:var(--paper-2); border:1px dashed var(--line); border-radius:12px;
+  padding:13px 15px; font-size:12.5px; color:var(--ink-soft); margin-top:24px; line-height:1.55;
+  display:none;
+}
+.install-hint.show{display:block;}
+.install-hint b{color:var(--ink);}
+
+@media (min-width:600px){
+  .hero h1{font-size:30px;}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="topbar">
+    <div class="back-btn hidden" id="backBtn" onclick="navBack()">←</div>
+    <div class="seal" id="topSeal">B1</div>
+    <div class="title" id="topTitle">Polski B1<small id="topSubtitle">Przygotowanie do egzaminu</small></div>
+  </div>
+  <main id="main"></main>
+</div>
+
+<script src="data_grammar.js"></script>
+<script src="data_skills_exams.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
