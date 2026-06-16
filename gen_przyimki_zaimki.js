@@ -1,20 +1,39 @@
 /* ===================================================================
    GENERATOR: PRZYIMKI I ZAIMKI — предлог + падеж существительного/местоимения
+   Паттерны привязаны к семантическим тегам NOUN_BANK (см. gen_przypadki.js),
+   чтобы избежать абсурдных сочетаний типа "rozmawiam z ulicą" или
+   "mieszkam bez mostu". Для местоимений используются только паттерны,
+   которые естественно звучат с личными местоимениями (о ком-то, с кем-то,
+   для кого-то, к кому-то) — не "jestem w niej" в нейтральном смысле.
    =================================================================== */
 
-// Используем существительные из NOUN_BANK (из gen_przypadki.js) — переиспользуем его форму [M,D,C,B,N,L]
-const PREP_PATTERNS = [
-  { frame:"Idę do {X}.", caseIdx:1, rule:"Предлог <i>do</i> требует Dopełniacza." },
+const PREP_PATTERNS_NOUN = [
+  { frame:"Idę do {X}.", caseIdx:1, tags:["place","building","person"], rule:"Предлог <i>do</i> требует Dopełniacza." },
+  { frame:"To jest prezent dla {X}.", caseIdx:1, tags:["person"], rule:"Предлог <i>dla</i> требует Dopełniacza." },
+  { frame:"Wracam bez {X}.", caseIdx:1, tags:["object","abstract","person"], rule:"Предлог <i>bez</i> требует Dopełniacza." },
+  { frame:"Stoję koło {X}.", caseIdx:1, tags:["place","building","object","person"], rule:"Предлог <i>koło</i> требует Dopełniacza." },
+  { frame:"Idę na {X}.", caseIdx:3, tags:["open_place"], rule:"Предлог <i>na</i> при движении требует Biernika." },
+  { frame:"Czekam na {X}.", caseIdx:3, tags:["transport","person"], rule:"<i>Czekać na</i> требует Biernika." },
+  { frame:"Rozmawiam z {X}.", caseIdx:4, tags:["person"], rule:"Предлог <i>z</i> (совместность) требует Narzędnika." },
+  { frame:"Idę z {X}.", caseIdx:4, tags:["person"], rule:"Предлог <i>z</i> (совместность) требует Narzędnika." },
+  { frame:"Mówię o {X}.", caseIdx:5, tags:["abstract","topic","person"], rule:"Предлог <i>o</i> (тема) требует Miejscownika." },
+  { frame:"Jestem w {X}.", caseIdx:5, tags:["place","building"], rule:"Предлог <i>w</i> без движения требует Miejscownika." },
+  { frame:"Siedzę przy {X}.", caseIdx:5, tags:["object","place","building","person"], rule:"Предлог <i>przy</i> требует Miejscownika." }
+];
+
+// Для местоимений — только те паттерны, где личное местоимение естественно
+// звучит в данной синтаксической позиции (о ком-то / с кем-то / для кого-то / к кому-то)
+const PREP_PATTERNS_PRONOUN = [
   { frame:"To jest prezent dla {X}.", caseIdx:1, rule:"Предлог <i>dla</i> требует Dopełniacza." },
-  { frame:"Mieszkam bez {X}.", caseIdx:1, rule:"Предлог <i>bez</i> требует Dopełniacza." },
-  { frame:"Stoję koło {X}.", caseIdx:1, rule:"Предлог <i>koło</i> требует Dopełniacza." },
-  { frame:"Idę na {X}.", caseIdx:3, rule:"Предлог <i>na</i> при движении требует Biernika." },
   { frame:"Czekam na {X}.", caseIdx:3, rule:"<i>Czekać na</i> требует Biernika." },
   { frame:"Rozmawiam z {X}.", caseIdx:4, rule:"Предлог <i>z</i> (совместность) требует Narzędnika." },
   { frame:"Idę z {X}.", caseIdx:4, rule:"Предлог <i>z</i> (совместность) требует Narzędnika." },
   { frame:"Mówię o {X}.", caseIdx:5, rule:"Предлог <i>o</i> (тема) требует Miejscownika." },
-  { frame:"Jestem w {X}.", caseIdx:5, rule:"Предлог <i>w</i> без движения требует Miejscownika." },
-  { frame:"Siedzę przy {X}.", caseIdx:5, rule:"Предлог <i>przy</i> требует Miejscownika." }
+  { frame:"Myślę o {X}.", caseIdx:5, rule:"Глагол <i>myśleć o</i> требует формы Miejscownika." },
+  { frame:"Idę do {X}.", caseIdx:1, rule:"Предлог <i>do</i> требует Dopełniacza." },
+  { frame:"Pomagam {X}.", caseIdx:2, rule:"Глагол <i>pomagać</i> требует формы Celownika." },
+  { frame:"Dziękuję {X}.", caseIdx:2, rule:"Глагол <i>dziękować</i> требует формы Celownika." },
+  { frame:"Widzę {X}.", caseIdx:3, rule:"Прямое дополнение переходного глагола — Biernik." }
 ];
 
 // Личные местоимения по падежам [M,D,C,B,N,L]
@@ -35,6 +54,10 @@ function shufflePZ(arr, rng){
   const a=arr.slice();
   for(let i=a.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
   return a;
+}
+
+function nounMatchesPattern(noun, pattern){
+  return noun.tags.some(t => pattern.tags.includes(t));
 }
 
 function buildPrepNounQuestion(pattern, noun, rng){
@@ -68,10 +91,11 @@ function buildPronounQuestion(pattern, pronoun, rng){
 }
 
 function generatePrzyimkiZaimkiTest(testIndex){
-  const rng = seededRandomPZ(15000+testIndex*53);
   const tasks = [];
-  PREP_PATTERNS.forEach(p=>{
-    NOUN_BANK.forEach(n => tasks.push({kind:"noun", pattern:p, item:n}));
+  PREP_PATTERNS_NOUN.forEach(p=>{
+    NOUN_BANK.forEach(n => { if(nounMatchesPattern(n,p)) tasks.push({kind:"noun", pattern:p, item:n}); });
+  });
+  PREP_PATTERNS_PRONOUN.forEach(p=>{
     PRONOUN_BANK.forEach(pr => tasks.push({kind:"pronoun", pattern:p, item:pr}));
   });
 
