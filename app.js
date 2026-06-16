@@ -79,7 +79,7 @@ function renderHome(main){
 
   main.appendChild(el(`
     <div class="hero">
-      <div class="seal-big"><b>B1</b><span>POLSKI</span></div>
+      <div class="ring-big"><div class="inner"><b>B1</b><span>POLSKI</span></div></div>
       <h1>Przygotowanie do egzaminu</h1>
       <p>Gramatyka, cztery sprawności i symulacje egzaminu —<br>wszystko w jednym miejscu, offline.</p>
     </div>
@@ -335,8 +335,8 @@ function renderQuizResult(main, topic, correct, total){
   const pct = Math.round((correct/total)*100);
   main.appendChild(el(`
     <div style="text-align:center;padding-top:10px;">
-      <div class="result-seal"><div class="pct">${pct}%</div><div class="lbl">WYNIK</div></div>
-      <h2 style="font-size:18px;margin:0 0 6px;">${correct} z ${total} poprawnie</h2>
+      <div class="result-seal"><div class="inner"><div class="pct">${pct}%</div><div class="lbl">WYNIK</div></div></div>
+      <h2 style="font-size:18px;margin:0 0 6px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;">${correct} z ${total} poprawnie</h2>
       <p style="color:var(--ink-soft);font-size:14px;margin:0 0 26px;">
         ${pct>=80? 'Świetnie! Ten temat masz opanowany.' : pct>=50? 'Dobry wynik, ale warto powtórzyć wyjątki.' : 'Wróć do materiału i przeczytaj wyjątki jeszcze raz.'}
       </p>

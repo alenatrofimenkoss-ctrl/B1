@@ -4,8 +4,8 @@
   "description": "Подготовка к государственному экзамену по польскому языку, уровень B1",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#F7F3EC",
-  "theme_color": "#7A1F2B",
+  "background_color": "#FAFAF8",
+  "theme_color": "#6B5FD6",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
