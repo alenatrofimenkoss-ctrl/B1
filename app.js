@@ -66,6 +66,11 @@ function render(){
   if(scr.screen === "grammar-test-bank") return renderTestBank(main, scr.topicId);
   if(scr.screen === "grammar-test-bank-quiz") return renderTestBankQuiz(main, scr.topicId, scr.testNumber);
   if(scr.screen === "skill-placeholder") return renderSkillPlaceholder(main, scr.skillId);
+  if(scr.screen === "skill-test-bank") return renderSkillTestBank(main, scr.skillId);
+  if(scr.screen === "czytanie-quiz") return renderCzytanieQuiz(main, scr.testNumber);
+  if(scr.screen === "sluchanie-quiz") return renderSluchanieQuiz(main, scr.testNumber);
+  if(scr.screen === "pisanie-task") return renderPisanieTask(main, scr.taskId);
+  if(scr.screen === "mowienie-task") return renderMowienieTask(main, scr.taskId);
   if(scr.screen === "exam-list") return renderExamList(main);
   if(scr.screen === "exam-placeholder") return renderExamPlaceholder(main);
 }
@@ -112,6 +117,16 @@ function renderHome(main){
   ];
   skillsMeta.forEach(s=>{
     const ready = SKILLS[s.id] && SKILLS[s.id].ready;
+    let pillText = "wkrótce";
+    if(ready){
+      if(s.id==="czytanie" || s.id==="sluchanie"){
+        const prog = PROGRESS.skills && PROGRESS.skills[s.id] ? Object.keys(PROGRESS.skills[s.id]).length : 0;
+        pillText = `${prog}/${SKILLS[s.id].testCount}`;
+      } else {
+        const doneCount = SKILLS[s.id].tasks.filter(t => PROGRESS.skills && PROGRESS.skills[s.id+"_"+t.id]).length;
+        pillText = `${doneCount}/${SKILLS[s.id].tasks.length}`;
+      }
+    }
     const card = el(`
       <div class="menu-card ${ready?'':'disabled'}">
         <div class="icon-badge">${s.icon}</div>
@@ -119,10 +134,15 @@ function renderHome(main){
           <p class="t">${s.t}</p>
           <p class="s">${s.s}</p>
         </div>
-        <div class="progress-pill">${ready? '' : 'wkrótce'}</div>
+        <div class="progress-pill">${pillText}</div>
       </div>
     `);
-    if(ready) card.onclick = () => navTo({ screen:"skill-placeholder", skillId:s.id });
+    if(ready){
+      card.onclick = () => {
+        if(s.id==="czytanie" || s.id==="sluchanie") navTo({ screen:"skill-test-bank", skillId:s.id });
+        else navTo({ screen:"skill-placeholder", skillId:s.id }); // pisanie/mowienie -> список тем
+      };
+    }
     grid.appendChild(card);
   });
 
@@ -533,15 +553,479 @@ function renderTestBankResult(main, topic, testNumber, correct, total){
 // ===================================================================
 // PLACEHOLDERS (skills / exams — будут заменены полным контентом)
 // ===================================================================
+// ===================================================================
+// SKILLS: Pisanie / Mówienie — список тем (открытые задания)
+// ===================================================================
 function renderSkillPlaceholder(main, skillId){
   const s = SKILLS[skillId];
   setTopbar(s.title, s.subtitle, "B1");
+
   main.appendChild(el(`
-    <div class="empty-state">
-      <div class="ic">…</div>
-      <p>Ten dział jest w przygotowaniu i zostanie dodany w kolejnym kroku.</p>
+    <div class="lesson-intro" style="margin-bottom:16px;">
+      Wybierz temat. Twoja odpowiedź zostanie sprawdzona przez AI, która oceni gramatykę,
+      słownictwo i zgodność z tematem — tak jak egzaminator.
+      <br><br><b>Uwaga:</b> ta część wymaga połączenia z internetem (sprawdzanie odpowiedzi przez AI).
     </div>
   `));
+
+  const list = el(`<div class="topic-list"></div>`);
+  s.tasks.forEach((t,i)=>{
+    const key = skillId+"_"+t.id;
+    const done = PROGRESS.skills && PROGRESS.skills[key];
+    const row = el(`
+      <div class="topic-row">
+        <div class="num">${i+1}</div>
+        <div class="t">
+          <div class="tt">${t.title}</div>
+          <div class="ts">${t.type ? (t.type==="formalny"?"List formalny":"List nieformalny") : "Temat do mówienia"}</div>
+        </div>
+        <div class="mark ${done?'done':''}">${done? '✓' : ''}</div>
+      </div>
+    `);
+    row.onclick = () => navTo({ screen: skillId==="pisanie" ? "pisanie-task" : "mowienie-task", taskId: t.id });
+    list.appendChild(row);
+  });
+  main.appendChild(list);
+}
+
+// ===================================================================
+// SKILLS: Czytanie / Słuchanie — банк тестов (текст + вопросы)
+// ===================================================================
+function getSkillProgress(skillId){
+  PROGRESS.skills = PROGRESS.skills || {};
+  PROGRESS.skills[skillId] = PROGRESS.skills[skillId] || {};
+  return PROGRESS.skills[skillId];
+}
+
+function renderSkillTestBank(main, skillId){
+  const s = SKILLS[skillId];
+  setTopbar(s.title, `${s.testCount} tekstów`, "B1");
+
+  const prog = getSkillProgress(skillId);
+  const doneCount = Object.keys(prog).length;
+
+  main.appendChild(el(`
+    <div class="lesson-intro" style="margin-bottom:16px;">
+      ${skillId==="sluchanie" ? "Odsłuchaj nagranie (możesz odtworzyć je kilka razy), a potem odpowiedz na pytania." : "Przeczytaj tekst, a potem odpowiedz na pytania dotyczące jego treści."}
+      <br><br>Wykonano: <b>${doneCount} z ${s.testCount}</b>
+    </div>
+  `));
+
+  const list = el(`<div class="topic-list"></div>`);
+  for(let i=1;i<=s.testCount;i++){
+    const res = prog[String(i)];
+    // покажем заголовок текста, не генерируя весь тест (дёшево — только подсмотрим title)
+    const preview = skillId==="czytanie" ? generateCzytanieTest(i-1) : generateSluchanieTest(i-1);
+    const row = el(`
+      <div class="topic-row">
+        <div class="num">${i}</div>
+        <div class="t">
+          <div class="tt">${preview.title}</div>
+          <div class="ts">${res ? `Wynik: ${res.correct}/${res.total}` : `${preview.exercises.length} pytań`}</div>
+        </div>
+        <div class="mark ${res?'done':''}">${res ? '✓' : ''}</div>
+      </div>
+    `);
+    row.onclick = () => navTo({ screen: skillId==="czytanie" ? "czytanie-quiz" : "sluchanie-quiz", testNumber:i });
+    list.appendChild(row);
+  }
+  main.appendChild(list);
+}
+
+function renderTextQuizCommon(main, skillId, testNumber, testData){
+  setTopbar(SKILLS[skillId].title, testData.title, "B1");
+
+  // text/audio card
+  if(skillId==="sluchanie"){
+    main.appendChild(el(`
+      <div class="audio-player">
+        <button class="play-btn" id="playBtn">▶</button>
+        <div class="info"><b>${testData.title}</b>Naciśnij, aby odsłuchać nagranie (możesz powtórzyć)</div>
+      </div>
+    `));
+  } else {
+    main.appendChild(el(`
+      <div class="reading-card">
+        <div class="rtitle">${testData.title}</div>
+        <div class="rtext">${testData.text}</div>
+      </div>
+    `));
+  }
+
+  let state = {
+    idx: 0,
+    answers: new Array(testData.exercises.length).fill(null),
+    revealed: new Array(testData.exercises.length).fill(false)
+  };
+
+  const quizContainer = el(`<div></div>`);
+  main.appendChild(quizContainer);
+
+  function draw(){
+    quizContainer.innerHTML = "";
+    const exercises = testData.exercises;
+
+    const prog = el(`<div class="quiz-progress"></div>`);
+    exercises.forEach((_,i)=>{
+      const dot = el(`<div class="dot"></div>`);
+      if(i < state.idx) dot.classList.add("done");
+      else if(i === state.idx) dot.classList.add("current");
+      prog.appendChild(dot);
+    });
+    quizContainer.appendChild(prog);
+
+    const q = exercises[state.idx];
+    const qBox = el(`
+      <div class="quiz-q">
+        <div class="qnum">Pytanie ${state.idx+1} z ${exercises.length}</div>
+        <div class="qtext">${q.q}</div>
+      </div>
+    `);
+    const optList = el(`<div class="opt-list"></div>`);
+    const letters = ["A","B","C","D"];
+    q.options.forEach((opt,i)=>{
+      const optEl = el(`<div class="opt"><div class="letter">${letters[i]}</div><div>${opt}</div></div>`);
+      if(state.revealed[state.idx]){
+        optEl.classList.add("disabled");
+        if(i===q.answer) optEl.classList.add("correct");
+        else if(i===state.answers[state.idx]) optEl.classList.add("incorrect");
+      } else if(state.answers[state.idx]===i){
+        optEl.classList.add("selected");
+      }
+      optEl.onclick = () => {
+        if(state.revealed[state.idx]) return;
+        state.answers[state.idx]=i; state.revealed[state.idx]=true; draw();
+      };
+      optList.appendChild(optEl);
+    });
+    qBox.appendChild(optList);
+    if(state.revealed[state.idx]){
+      qBox.appendChild(el(`<div class="explain-box"><b>Objaśnienie:</b> ${q.explain}</div>`));
+    }
+    quizContainer.appendChild(qBox);
+
+    const nav = el(`<div class="quiz-nav"></div>`);
+    if(state.idx < exercises.length-1){
+      const nextBtn = el(`<button class="btn">Dalej →</button>`);
+      if(!state.revealed[state.idx]) nextBtn.style.opacity="0.4";
+      nextBtn.onclick = () => { if(state.revealed[state.idx]){ state.idx++; draw(); window.scrollTo(0,0); } };
+      nav.appendChild(nextBtn);
+    } else {
+      const finishBtn = el(`<button class="btn">Zakończ</button>`);
+      if(!state.revealed[state.idx]) finishBtn.style.opacity="0.4";
+      finishBtn.onclick = () => {
+        if(!state.revealed[state.idx]) return;
+        const correct = state.answers.filter((a,i)=>a===exercises[i].answer).length;
+        const prog2 = getSkillProgress(skillId);
+        prog2[String(testNumber)] = { correct, total: exercises.length };
+        saveProgress(PROGRESS);
+        renderTextQuizResult(main, skillId, testNumber, correct, exercises.length);
+      };
+      nav.appendChild(finishBtn);
+    }
+    quizContainer.appendChild(nav);
+  }
+  draw();
+
+  if(skillId==="sluchanie"){
+    const playBtn = document.getElementById("playBtn");
+    let speaking = false;
+    playBtn.onclick = () => {
+      if(speaking) return;
+      if(!('speechSynthesis' in window)){
+        alert("Twoja przeglądarka nie wspiera syntezatora mowy.");
+        return;
+      }
+      const utter = new SpeechSynthesisUtterance(testData.text);
+      utter.lang = "pl-PL";
+      utter.rate = 0.95;
+      speaking = true;
+      playBtn.textContent = "⏸";
+      utter.onend = () => { speaking = false; playBtn.textContent = "▶"; };
+      utter.onerror = () => { speaking = false; playBtn.textContent = "▶"; };
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    };
+  }
+}
+
+function renderCzytanieQuiz(main, testNumber){
+  const testData = generateCzytanieTest(testNumber-1);
+  renderTextQuizCommon(main, "czytanie", testNumber, testData);
+}
+function renderSluchanieQuiz(main, testNumber){
+  const testData = generateSluchanieTest(testNumber-1);
+  renderTextQuizCommon(main, "sluchanie", testNumber, testData);
+}
+
+function renderTextQuizResult(main, skillId, testNumber, correct, total){
+  main.innerHTML = "";
+  const s = SKILLS[skillId];
+  setTopbar(s.title, `Wynik`, "B1");
+  const pct = Math.round((correct/total)*100);
+  main.appendChild(el(`
+    <div style="text-align:center;padding-top:10px;">
+      <div class="result-seal"><div class="inner"><div class="pct">${pct}%</div><div class="lbl">WYNIK</div></div></div>
+      <h2 style="font-size:18px;margin:0 0 6px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;">${correct} z ${total} poprawnie</h2>
+    </div>
+  `));
+  const row = el(`<div></div>`);
+  const isLast = testNumber >= s.testCount;
+  if(!isLast){
+    const nextBtn = el(`<button class="btn" style="margin-bottom:10px;">Następny tekst (${testNumber+1}/${s.testCount}) →</button>`);
+    nextBtn.onclick = () => navTo({ screen: skillId==="czytanie"?"czytanie-quiz":"sluchanie-quiz", testNumber: testNumber+1 });
+    row.appendChild(nextBtn);
+  }
+  const listBtn = el(`<button class="btn secondary">Wybierz inny tekst</button>`);
+  listBtn.onclick = () => { NAV=[{screen:"home"},{screen:"skill-test-bank", skillId}]; render(); };
+  row.appendChild(listBtn);
+  main.appendChild(row);
+}
+
+// ===================================================================
+// PISANIE — открытое задание + проверка через Claude API
+// ===================================================================
+function renderPisanieTask(main, taskId){
+  const task = WRITING_TASKS.find(t=>t.id===taskId);
+  setTopbar("Pisanie", task.title, "Pi");
+
+  main.appendChild(el(`
+    <div class="task-card">
+      <div class="ttype">${task.type==="formalny"?"List formalny":"List nieformalny"}</div>
+      <div class="ttitle">${task.title}</div>
+      <div class="tprompt">${task.prompt}</div>
+    </div>
+  `));
+
+  const textarea = el(`<textarea class="answer-box" placeholder="Napisz tutaj swoją odpowiedź..."></textarea>`);
+  main.appendChild(textarea);
+  const wc = el(`<div class="word-count">0 słów</div>`);
+  main.appendChild(wc);
+  textarea.addEventListener("input", ()=>{
+    const words = textarea.value.trim().split(/\s+/).filter(Boolean).length;
+    wc.textContent = `${words} słów`;
+  });
+
+  const resultContainer = el(`<div></div>`);
+  main.appendChild(resultContainer);
+
+  const ctaRow = el(`<div class="cta-row"></div>`);
+  const submitBtn = el(`<button class="btn">Sprawdź odpowiedź (AI)</button>`);
+  submitBtn.onclick = async () => {
+    const text = textarea.value.trim();
+    if(text.length < 20){ alert("Napisz dłuższą odpowiedź przed sprawdzeniem."); return; }
+    resultContainer.innerHTML = "";
+    resultContainer.appendChild(el(`<div class="loading-dots"><span></span><span></span><span></span></div>`));
+    submitBtn.disabled = true; submitBtn.style.opacity = "0.5";
+    try{
+      const feedback = await evaluateWriting(task, text);
+      resultContainer.innerHTML = "";
+      resultContainer.appendChild(renderFeedbackCard(feedback));
+      PROGRESS.skills = PROGRESS.skills || {};
+      PROGRESS.skills["pisanie_"+task.id] = true;
+      saveProgress(PROGRESS);
+    }catch(e){
+      resultContainer.innerHTML = "";
+      resultContainer.appendChild(el(`<div class="exceptions-box"><div class="lbl">⚠ Błąd</div><div style="font-size:13.5px;">Nie udało się połączyć z AI. Sprawdź połączenie z internetem i spróbuj ponownie.</div></div>`));
+    }
+    submitBtn.disabled = false; submitBtn.style.opacity = "1";
+  };
+  ctaRow.appendChild(submitBtn);
+  main.appendChild(ctaRow);
+}
+
+async function evaluateWriting(task, userText){
+  const systemPrompt = `Jesteś egzaminatorem języka polskiego jako obcego na poziomie B1. Oceniasz pisemną pracę ucznia.
+Kryteria oceny: ${WRITING_EVALUATION_CRITERIA.join("; ")}.
+Temat zadania: "${task.title}". Treść zadania: "${task.prompt}".
+Odpowiedz WYŁĄCZNIE w formacie JSON, bez markdown, bez code fences, w następującej strukturze:
+{"score": <liczba 1-10>, "summary": "<krótkie podsumowanie ogólne, 1-2 zdania, w języku rosyjskim>", "strengths": "<co jest dobre w tekście, w języku rosyjskim>", "errors": "<konkretne błędy gramatyczne/leksykalne z cytatami z tekstu ucznia i poprawkami, w języku rosyjskim>", "suggestions": "<jak poprawić tekst, w języku rosyjskim>"}`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role:"user", content: `Tekst ucznia:\n\n${userText}` }]
+    })
+  });
+  const data = await response.json();
+  const textBlock = data.content.find(c=>c.type==="text");
+  let clean = textBlock.text.replace(/```json|```/g,"").trim();
+  return JSON.parse(clean);
+}
+
+function renderFeedbackCard(fb){
+  return el(`
+    <div class="feedback-card">
+      <div class="fb-header">
+        <div class="fb-score">${fb.score}/10</div>
+        <div class="fb-title">Ocena AI</div>
+      </div>
+      <div class="fb-section"><div class="fb-label">Podsumowanie</div><div class="fb-text">${fb.summary}</div></div>
+      <div class="fb-section"><div class="fb-label">Co jest dobre</div><div class="fb-text">${fb.strengths}</div></div>
+      <div class="fb-section"><div class="fb-label">Błędy</div><div class="fb-text">${fb.errors}</div></div>
+      <div class="fb-section"><div class="fb-label">Jak poprawić</div><div class="fb-text">${fb.suggestions}</div></div>
+    </div>
+  `);
+}
+
+// ===================================================================
+// MÓWIENIE — запись речи (SpeechRecognition) + проверка через Claude API
+// ===================================================================
+function renderMowienieTask(main, taskId){
+  const task = SPEAKING_TASKS.find(t=>t.id===taskId);
+  setTopbar("Mówienie", task.title, "Mó");
+
+  main.appendChild(el(`
+    <div class="task-card">
+      <div class="ttype">Temat do mówienia</div>
+      <div class="ttitle">${task.title}</div>
+      <div class="tprompt">${task.prompt}</div>
+    </div>
+  `));
+
+  const recordArea = el(`
+    <div class="record-area">
+      <button class="record-btn" id="recBtn">●</button>
+      <div class="record-status" id="recStatus">Naciśnij, aby zacząć mówić po polsku</div>
+      <div class="transcript-box" id="transcriptBox" style="display:none;"></div>
+    </div>
+  `);
+  main.appendChild(recordArea);
+
+  const resultContainer = el(`<div></div>`);
+  main.appendChild(resultContainer);
+
+  const ctaRow = el(`<div class="cta-row"></div>`);
+  const submitBtn = el(`<button class="btn" style="display:none;">Sprawdź odpowiedź (AI)</button>`);
+  ctaRow.appendChild(submitBtn);
+  main.appendChild(ctaRow);
+
+  let finalTranscript = "";
+  const recBtn = document.getElementById("recBtn");
+  const recStatus = document.getElementById("recStatus");
+  const transcriptBox = document.getElementById("transcriptBox");
+
+  const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function showManualFallback(reasonText){
+    recordArea.innerHTML = "";
+    recordArea.appendChild(el(`<div class="record-status">${reasonText} Możesz wpisać swoją odpowiedź tekstowo — przeczytaj pytanie, odpowiedz na głos do siebie, a potem zapisz, co powiedziałeś/aś.</div>`));
+    const manualBox = el(`<textarea class="answer-box" placeholder="Napisz tutaj to, co powiedziałeś/aś..." style="margin-top:10px;"></textarea>`);
+    recordArea.appendChild(manualBox);
+    manualBox.addEventListener("input", ()=>{
+      finalTranscript = manualBox.value;
+      submitBtn.style.display = finalTranscript.trim().length>5 ? "block" : "none";
+    });
+  }
+
+  if(!SpeechRecognitionAPI){
+    showManualFallback("Twoja przeglądarka nie wspiera rozpoznawania mowy.");
+  } else {
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = "pl-PL";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    let listening = false;
+
+    recognition.onresult = (event) => {
+      let interim = "";
+      for(let i=event.resultIndex;i<event.results.length;i++){
+        const transcript = event.results[i][0].transcript;
+        if(event.results[i].isFinal) finalTranscript += transcript + " ";
+        else interim += transcript;
+      }
+      transcriptBox.style.display = "block";
+      transcriptBox.innerHTML = finalTranscript + `<span style="color:var(--ink-soft);">${interim}</span>`;
+    };
+    recognition.onerror = (e) => {
+      listening = false;
+      recBtn.classList.remove("recording");
+      recBtn.textContent = "●";
+      if(e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture"){
+        showManualFallback("Nie udało się uzyskać dostępu do mikrofonu lub usługi rozpoznawania mowy.");
+      } else {
+        recStatus.textContent = "Błąd rozpoznawania mowy: " + e.error + ". Spróbuj ponownie.";
+      }
+    };
+    recognition.onend = () => {
+      listening = false;
+      recBtn.classList.remove("recording");
+      recBtn.textContent = "●";
+      if(finalTranscript.trim().length > 5){
+        recStatus.textContent = "Nagrywanie zakończone. Możesz sprawdzić odpowiedź albo nagrać ponownie.";
+        submitBtn.style.display = "block";
+      }
+    };
+
+    recBtn.onclick = () => {
+      if(listening){
+        recognition.stop();
+        return;
+      }
+      finalTranscript = "";
+      transcriptBox.innerHTML = "";
+      transcriptBox.style.display = "none";
+      submitBtn.style.display = "none";
+      resultContainer.innerHTML = "";
+      try{
+        recognition.start();
+        listening = true;
+        recBtn.classList.add("recording");
+        recBtn.textContent = "■";
+        recStatus.textContent = "Słucham... Naciśnij ponownie, aby zakończyć.";
+      }catch(e){
+        recStatus.textContent = "Nie udało się uruchomić mikrofonu. Sprawdź uprawnienia.";
+      }
+    };
+  }
+
+  submitBtn.onclick = async () => {
+    const text = finalTranscript.trim();
+    if(text.length < 5){ alert("Nagranie jest za krótkie."); return; }
+    resultContainer.innerHTML = "";
+    resultContainer.appendChild(el(`<div class="loading-dots"><span></span><span></span><span></span></div>`));
+    submitBtn.disabled = true; submitBtn.style.opacity = "0.5";
+    try{
+      const feedback = await evaluateSpeaking(task, text);
+      resultContainer.innerHTML = "";
+      resultContainer.appendChild(renderFeedbackCard(feedback));
+      PROGRESS.skills = PROGRESS.skills || {};
+      PROGRESS.skills["mowienie_"+task.id] = true;
+      saveProgress(PROGRESS);
+    }catch(e){
+      resultContainer.innerHTML = "";
+      resultContainer.appendChild(el(`<div class="exceptions-box"><div class="lbl">⚠ Błąd</div><div style="font-size:13.5px;">Nie udało się połączyć z AI. Sprawdź połączenie z internetem i spróbuj ponownie.</div></div>`));
+    }
+    submitBtn.disabled = false; submitBtn.style.opacity = "1";
+  };
+}
+
+async function evaluateSpeaking(task, transcript){
+  const systemPrompt = `Jesteś egzaminatorem języka polskiego jako obcego na poziomie B1. Oceniasz transkrypcję wypowiedzi ustnej ucznia (rozpoznaną automatycznie, więc literówki mogą być wynikiem błędu rozpoznawania mowy, nie ucznia — bądź na to wyczulony).
+Kryteria oceny: ${SPEAKING_EVALUATION_CRITERIA.join("; ")}.
+Temat: "${task.title}". Treść zadania: "${task.prompt}".
+Odpowiedz WYŁĄCZNIE w formacie JSON, bez markdown, bez code fences:
+{"score": <liczba 1-10>, "summary": "<krótkie podsumowanie, w języku rosyjskim>", "strengths": "<co jest dobre, w języku rosyjskim>", "errors": "<konkretne błędy gramatyczne/leksykalne z cytatami i poprawkami, w języku rosyjskim>", "suggestions": "<jak poprawić, w języku rosyjskim>"}`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role:"user", content: `Transkrypcja wypowiedzi ucznia:\n\n${transcript}` }]
+    })
+  });
+  const data = await response.json();
+  const textBlock = data.content.find(c=>c.type==="text");
+  let clean = textBlock.text.replace(/```json|```/g,"").trim();
+  return JSON.parse(clean);
 }
 function renderExamList(main){
   setTopbar("Wersje egzaminacyjne", "15 symulacji", "15×");

@@ -6,26 +6,30 @@ const SKILLS = {
   czytanie: {
     title: "Czytanie",
     subtitle: "Понимание текста при чтении",
-    ready: false,
-    texts: []
+    ready: true,
+    generator: generateCzytanieTest,
+    testCount: CZYTANIE_TEST_COUNT
   },
   sluchanie: {
     title: "Słuchanie",
     subtitle: "Понимание на слух",
-    ready: false,
-    texts: []
+    ready: true,
+    generator: generateSluchanieTest,
+    testCount: SLUCHANIE_TEST_COUNT
   },
   pisanie: {
     title: "Pisanie",
     subtitle: "Письмо (формальное / неформальное)",
-    ready: false,
-    templates: []
+    ready: true,
+    tasks: WRITING_TASKS,
+    criteria: WRITING_EVALUATION_CRITERIA
   },
   mowienie: {
     title: "Mówienie",
     subtitle: "Устная часть экзамена",
-    ready: false,
-    topics: []
+    ready: true,
+    tasks: SPEAKING_TASKS,
+    criteria: SPEAKING_EVALUATION_CRITERIA
   }
 };
 
