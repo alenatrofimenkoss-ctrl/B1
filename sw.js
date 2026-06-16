@@ -1,9 +1,16 @@
-const CACHE_NAME = "polski-b1-v1";
+const CACHE_NAME = "polski-b1-v2";
 const FILES_TO_CACHE = [
   "./index.html",
   "./app.js",
   "./data_grammar.js",
   "./data_skills_exams.js",
+  "./gen_przypadki.js",
+  "./gen_rodzaj_liczba.js",
+  "./gen_przymiotnik.js",
+  "./gen_czasownik.js",
+  "./gen_liczebniki.js",
+  "./gen_przyimki_zaimki.js",
+  "./gen_zdania_zlozone.js",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png"

@@ -1,8 +1,9 @@
 /* ===================================================================
    POLSKI B1 — DANE GRAMATYCZNE (полная грамматика для уровня B1)
-   Структура: GRAMMAR = [ { id, title, subtitle, blocks:[...], exercises:[...] } ]
+   Структура: GRAMMAR = [ { id, title, subtitle, blocks:[...], exercises:[...], testBankGenerator } ]
    blocks: { type: 'text'|'table'|'list', ... } — для рендера объяснений
-   exercises: { type:'choice'|'fill'|'match', question, options, answer, explain }
+   exercises: { type:'choice'|'fill'|'match', question, options, answer, explain } — короткий ознакомительный тест
+   testBankGenerator: function(testIndex) → массив из 10 exercises — для большого банка тестов (100×10)
    =================================================================== */
 
 const GRAMMAR = [
@@ -12,6 +13,8 @@ const GRAMMAR = [
   id: "przypadki",
   title: "Przypadki",
   subtitle: "Падежи существительных и прилагательных",
+  testBankGenerator: generatePrzypadkiTest,
+  testBankCount: 100,
   blocks: [
     { type: "text", html: `В польском языке 7 падежей. На экзамене B1 редко спрашивают
       теорию — обычно нужно вставить верную форму слова в предложение. Поэтому ключ —
@@ -70,6 +73,8 @@ const GRAMMAR = [
   id: "rodzaj-liczba",
   title: "Rodzaj i liczba rzeczownika",
   subtitle: "Род существительных и образование множественного числа",
+  testBankGenerator: generateRodzajLiczbaTest,
+  testBankCount: 100,
   blocks: [
     { type: "text", html: `Род определяет, какое окончание выберут прилагательное, числительное
       и глагол в прошедшем времени. В польском есть 5 родов (в отличие от русского, где их 3):
@@ -125,6 +130,8 @@ const GRAMMAR = [
   id: "przymiotnik",
   title: "Przymiotnik",
   subtitle: "Прилагательные: согласование, степени сравнения",
+  testBankGenerator: generatePrzymiotnikTest,
+  testBankCount: 100,
   blocks: [
     { type: "text", html: `Прилагательное всегда согласуется с существительным в роде, числе и
       падеже. В словаре прилагательное даётся в форме мужского рода ед.ч. (<i>dobry</i>), от него
@@ -168,6 +175,8 @@ const GRAMMAR = [
   id: "czasownik-czasy",
   title: "Czasownik — aspekt i czasy",
   subtitle: "Виды глагола, настоящее, прошедшее, будущее время",
+  testBankGenerator: generateCzasownikTest,
+  testBankCount: 100,
   blocks: [
     { type: "text", html: `Главная трудность для русскоязычных — понять, что польский <b>aspekt</b>
       (вид: niedokonany/dokonany) работает почти так же, как в русском «делать/сделать», но
@@ -223,6 +232,8 @@ const GRAMMAR = [
   id: "liczebniki",
   title: "Liczebniki",
   subtitle: "Числительные и их связь с падежом существительного",
+  testBankGenerator: generateLiczebnikiTest,
+  testBankCount: 100,
   blocks: [
     { type: "text", html: `Это одна из самых частых тем на экзамене B1. Главное правило:
       числительные <b>1</b> ведут себя как прилагательное; <b>2,3,4</b> требуют особой формы
@@ -266,6 +277,8 @@ const GRAMMAR = [
   id: "przyimki-zaimki",
   title: "Przyimki i zaimki",
   subtitle: "Предлоги с управлением падежами, местоимения",
+  testBankGenerator: generatePrzyimkiZaimkiTest,
+  testBankCount: 100,
   blocks: [
     { type: "text", html: `Каждый предлог требует определённого падежа (а некоторые — разных
       падежей в зависимости от значения: статика vs движение). Заучивать предлоги нужно сразу
@@ -318,6 +331,8 @@ const GRAMMAR = [
   id: "zdania-zlozone",
   title: "Zdania złożone",
   subtitle: "Союзы и сложные предложения",
+  testBankGenerator: generateZdaniaZlozoneTest,
+  testBankCount: 100,
   blocks: [
     { type: "text", html: `На письме и в говорении B1 ожидается умение связывать простые
       предложения союзами причины, условия, противопоставления и цели — это прямо влияет на оценку

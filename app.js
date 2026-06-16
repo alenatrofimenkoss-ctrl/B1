@@ -63,6 +63,8 @@ function render(){
   if(scr.screen === "grammar-list") return renderGrammarList(main);
   if(scr.screen === "grammar-lesson") return renderGrammarLesson(main, scr.topicId);
   if(scr.screen === "grammar-quiz") return renderQuiz(main, { mode:"grammar", topicId: scr.topicId });
+  if(scr.screen === "grammar-test-bank") return renderTestBank(main, scr.topicId);
+  if(scr.screen === "grammar-test-bank-quiz") return renderTestBankQuiz(main, scr.topicId, scr.testNumber);
   if(scr.screen === "skill-placeholder") return renderSkillPlaceholder(main, scr.skillId);
   if(scr.screen === "exam-list") return renderExamList(main);
   if(scr.screen === "exam-placeholder") return renderExamPlaceholder(main);
@@ -162,13 +164,16 @@ function renderGrammarList(main){
 
   const list = el(`<div class="topic-list"></div>`);
   GRAMMAR.forEach((g, i)=>{
-    const done = PROGRESS.grammar[g.id] && PROGRESS.grammar[g.id].completed;
+    const prog = PROGRESS.grammar[g.id];
+    const bankDone = prog && prog.bankResults ? Object.keys(prog.bankResults).length : 0;
+    const done = prog && prog.completed;
+    const testWord = bankDone===1 ? "test wykonany" : (bankDone>=2 && bankDone<=4 ? "testy wykonane" : "testów wykonanych");
     const row = el(`
       <div class="topic-row">
         <div class="num">${i+1}</div>
         <div class="t">
           <div class="tt">${g.title}</div>
-          <div class="ts">${g.subtitle}</div>
+          <div class="ts">${g.subtitle}${bankDone>0 ? ` · ${bankDone} ${testWord}` : ""}</div>
         </div>
         <div class="mark ${done?'done':''}">${done? '✓' : ''}</div>
       </div>
@@ -230,9 +235,15 @@ function renderGrammarLesson(main, topicId){
   topic.blocks.forEach(b => main.appendChild(renderBlock(b)));
 
   const ctaRow = el(`<div class="cta-row"></div>`);
-  const btn = el(`<button class="btn">Przejdź do testu (${topic.exercises.length} zadań)</button>`);
-  btn.onclick = () => navTo({ screen:"grammar-quiz", topicId: topic.id });
-  ctaRow.appendChild(btn);
+  if(topic.testBankGenerator){
+    const btn = el(`<button class="btn">Wybierz test (${topic.testBankCount}×10 zadań)</button>`);
+    btn.onclick = () => navTo({ screen:"grammar-test-bank", topicId: topic.id });
+    ctaRow.appendChild(btn);
+  } else {
+    const btn = el(`<button class="btn">Przejdź do testu (${topic.exercises.length} zadań)</button>`);
+    btn.onclick = () => navTo({ screen:"grammar-quiz", topicId: topic.id });
+    ctaRow.appendChild(btn);
+  }
   main.appendChild(ctaRow);
 }
 
@@ -349,6 +360,173 @@ function renderQuizResult(main, topic, correct, total){
   listBtn.onclick = () => { NAV = [{screen:"home"},{screen:"grammar-list"}]; render(); };
   row.appendChild(retryBtn);
   row.appendChild(listBtn);
+  main.appendChild(row);
+}
+
+// ===================================================================
+// GRAMMAR — TEST BANK (100 тестов × 10 вопросов, генерируются лениво)
+// ===================================================================
+function getTopicTestProgress(topicId){
+  PROGRESS.grammar[topicId] = PROGRESS.grammar[topicId] || {};
+  PROGRESS.grammar[topicId].bankResults = PROGRESS.grammar[topicId].bankResults || {}; // { "1": {correct,total} }
+  return PROGRESS.grammar[topicId];
+}
+
+function renderTestBank(main, topicId){
+  const topic = GRAMMAR.find(g=>g.id===topicId);
+  setTopbar(topic.title, `Bank testów · ${topic.testBankCount} testów`, "Gr");
+
+  const tp = getTopicTestProgress(topicId);
+  const doneCount = Object.keys(tp.bankResults).length;
+
+  main.appendChild(el(`
+    <div class="lesson-intro" style="margin-bottom:16px;">
+      Każdy test to <b>10 nowych zadań</b>. Możesz przejść tyle testów, ile chcesz —
+      nie trzeba robić wszystkich, aby przejść do następnego tematu.
+      <br><br>Wykonano: <b>${doneCount} z ${topic.testBankCount}</b>
+    </div>
+  `));
+
+  const list = el(`<div class="topic-list"></div>`);
+  for(let i=1;i<=topic.testBankCount;i++){
+    const res = tp.bankResults[String(i)];
+    const row = el(`
+      <div class="topic-row">
+        <div class="num">${i}</div>
+        <div class="t">
+          <div class="tt">Test ${i}</div>
+          <div class="ts">${res ? `Wynik: ${res.correct}/${res.total}` : "10 zadań · nie rozpoczęto"}</div>
+        </div>
+        <div class="mark ${res?'done':''}">${res ? '✓' : ''}</div>
+      </div>
+    `);
+    row.onclick = () => navTo({ screen:"grammar-test-bank-quiz", topicId, testNumber:i });
+    list.appendChild(row);
+  }
+  main.appendChild(list);
+}
+
+function renderTestBankQuiz(main, topicId, testNumber){
+  const topic = GRAMMAR.find(g=>g.id===topicId);
+  const exercises = topic.testBankGenerator(testNumber - 1); // testIndex 0-based
+
+  setTopbar(topic.title, `Test ${testNumber} z ${topic.testBankCount}`, "Gr");
+
+  let state = {
+    idx: 0,
+    answers: new Array(exercises.length).fill(null),
+    revealed: new Array(exercises.length).fill(false)
+  };
+
+  function draw(){
+    main.innerHTML = "";
+    const prog = el(`<div class="quiz-progress"></div>`);
+    exercises.forEach((_,i)=>{
+      const dot = el(`<div class="dot"></div>`);
+      if(i < state.idx) dot.classList.add("done");
+      else if(i === state.idx) dot.classList.add("current");
+      prog.appendChild(dot);
+    });
+    main.appendChild(prog);
+
+    const q = exercises[state.idx];
+    const qBox = el(`
+      <div class="quiz-q">
+        <div class="qnum">Zadanie ${state.idx+1} z ${exercises.length}</div>
+        <div class="qtext">${q.q}</div>
+      </div>
+    `);
+    const optList = el(`<div class="opt-list"></div>`);
+    const letters = ["A","B","C","D"];
+
+    q.options.forEach((opt, i)=>{
+      const optEl = el(`<div class="opt"><div class="letter">${letters[i]}</div><div>${opt}</div></div>`);
+      if(state.revealed[state.idx]){
+        optEl.classList.add("disabled");
+        if(i === q.answer) optEl.classList.add("correct");
+        else if(i === state.answers[state.idx]) optEl.classList.add("incorrect");
+      } else if(state.answers[state.idx] === i){
+        optEl.classList.add("selected");
+      }
+      optEl.onclick = () => {
+        if(state.revealed[state.idx]) return;
+        state.answers[state.idx] = i;
+        state.revealed[state.idx] = true;
+        draw();
+      };
+      optList.appendChild(optEl);
+    });
+    qBox.appendChild(optList);
+
+    if(state.revealed[state.idx]){
+      qBox.appendChild(el(`<div class="explain-box"><b>Objaśnienie:</b> ${q.explain}</div>`));
+    }
+    main.appendChild(qBox);
+
+    const nav = el(`<div class="quiz-nav"></div>`);
+    if(state.idx < exercises.length-1){
+      const nextBtn = el(`<button class="btn">Dalej →</button>`);
+      if(!state.revealed[state.idx]) nextBtn.style.opacity = "0.4";
+      nextBtn.onclick = () => { if(state.revealed[state.idx]){ state.idx++; draw(); window.scrollTo(0,0);} };
+      nav.appendChild(nextBtn);
+    } else {
+      const finishBtn = el(`<button class="btn">Zakończ test</button>`);
+      if(!state.revealed[state.idx]) finishBtn.style.opacity = "0.4";
+      finishBtn.onclick = () => {
+        if(!state.revealed[state.idx]) return;
+        const correct = state.answers.filter((a,i)=>a===exercises[i].answer).length;
+        const tp = getTopicTestProgress(topicId);
+        tp.bankResults[String(testNumber)] = { correct, total: exercises.length };
+        tp.completed = true; // отметка, что темой начали заниматься
+        saveProgress(PROGRESS);
+        renderTestBankResult(main, topic, testNumber, correct, exercises.length);
+      };
+      nav.appendChild(finishBtn);
+    }
+    main.appendChild(nav);
+  }
+  draw();
+}
+
+function renderTestBankResult(main, topic, testNumber, correct, total){
+  main.innerHTML = "";
+  setTopbar(topic.title, `Wynik testu ${testNumber}`, "Gr");
+  const pct = Math.round((correct/total)*100);
+  main.appendChild(el(`
+    <div style="text-align:center;padding-top:10px;">
+      <div class="result-seal"><div class="inner"><div class="pct">${pct}%</div><div class="lbl">WYNIK</div></div></div>
+      <h2 style="font-size:18px;margin:0 0 6px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;">${correct} z ${total} poprawnie</h2>
+      <p style="color:var(--ink-soft);font-size:14px;margin:0 0 26px;">
+        ${pct>=80? 'Świetnie! Możesz przejść dalej albo spróbować kolejnego testu.' : pct>=50? 'Dobry wynik — warto przejść jeszcze jeden test.' : 'Warto wrócić do materiału i spróbować ponownie.'}
+      </p>
+    </div>
+  `));
+
+  const row = el(`<div></div>`);
+
+  const isLast = testNumber >= topic.testBankCount;
+  if(!isLast){
+    const nextTestBtn = el(`<button class="btn" style="margin-bottom:10px;">Następny test (${testNumber+1}/${topic.testBankCount}) →</button>`);
+    nextTestBtn.onclick = () => navTo({ screen:"grammar-test-bank-quiz", topicId: topic.id, testNumber: testNumber+1 });
+    row.appendChild(nextTestBtn);
+  }
+
+  const moreTestsBtn = el(`<button class="btn secondary" style="margin-bottom:10px;">Wybierz inny test z banku</button>`);
+  moreTestsBtn.onclick = () => { NAV = [{screen:"home"},{screen:"grammar-list"},{screen:"grammar-test-bank", topicId: topic.id}]; render(); };
+  row.appendChild(moreTestsBtn);
+
+  const idx = GRAMMAR.findIndex(g=>g.id===topic.id);
+  const nextTopic = GRAMMAR[idx+1];
+  if(nextTopic){
+    const nextTopicBtn = el(`<button class="btn ghost">Przejdź do następnego tematu: ${nextTopic.title} →</button>`);
+    nextTopicBtn.onclick = () => { NAV = [{screen:"home"},{screen:"grammar-list"},{screen:"grammar-lesson", topicId: nextTopic.id}]; render(); };
+    row.appendChild(nextTopicBtn);
+  } else {
+    const listBtn = el(`<button class="btn ghost">Wróć do listy tematów</button>`);
+    listBtn.onclick = () => { NAV = [{screen:"home"},{screen:"grammar-list"}]; render(); };
+    row.appendChild(listBtn);
+  }
+
   main.appendChild(row);
 }
 
