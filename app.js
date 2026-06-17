@@ -2,6 +2,11 @@
    POLSKI B1 — APP ENGINE
    =================================================================== */
 
+// URL Cloudflare Worker, который проксирует запросы к Claude API
+// (ключ хранится в секретах Worker'а, не на фронтенде).
+// ЗАМЕНИ на свой реальный адрес после деплоя Worker'а в Cloudflare.
+const WORKER_API_URL = "https://polski-b1-worker.YOUR-SUBDOMAIN.workers.dev";
+
 const STORAGE_KEY = "polski_b1_progress_v1";
 
 function loadProgress(){
@@ -841,11 +846,10 @@ Temat zadania: "${task.title}". Treść zadania: "${task.prompt}".
 Odpowiedz WYŁĄCZNIE w formacie JSON, bez markdown, bez code fences, w następującej strukturze:
 {"score": <liczba 1-10>, "summary": "<krótkie podsumowanie ogólne, 1-2 zdania, w języku rosyjskim>", "strengths": "<co jest dobre w tekście, w języku rosyjskim>", "errors": "<konkretne błędy gramatyczne/leksykalne z cytatami z tekstu ucznia i poprawkami, w języku rosyjskim>", "suggestions": "<jak poprawić tekst, w języku rosyjskim>"}`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch(WORKER_API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
       max_tokens: 1000,
       system: systemPrompt,
       messages: [{ role:"user", content: `Tekst ucznia:\n\n${userText}` }]
@@ -1012,11 +1016,10 @@ Temat: "${task.title}". Treść zadania: "${task.prompt}".
 Odpowiedz WYŁĄCZNIE w formacie JSON, bez markdown, bez code fences:
 {"score": <liczba 1-10>, "summary": "<krótkie podsumowanie, w języku rosyjskim>", "strengths": "<co jest dobre, w języku rosyjskim>", "errors": "<konkretne błędy gramatyczne/leksykalne z cytatami i poprawkami, w języku rosyjskim>", "suggestions": "<jak poprawić, w języku rosyjskim>"}`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch(WORKER_API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
       max_tokens: 1000,
       system: systemPrompt,
       messages: [{ role:"user", content: `Transkrypcja wypowiedzi ucznia:\n\n${transcript}` }]
