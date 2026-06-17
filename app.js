@@ -831,7 +831,7 @@ function renderPisanieTask(main, taskId){
       saveProgress(PROGRESS);
     }catch(e){
       resultContainer.innerHTML = "";
-      resultContainer.appendChild(el(`<div class="exceptions-box"><div class="lbl">⚠ Błąd</div><div style="font-size:13.5px;">Nie udało się połączyć z AI. Sprawdź połączenie z internetem i spróbuj ponownie.</div></div>`));
+      resultContainer.appendChild(el(`<div class="exceptions-box"><div class="lbl">⚠ Błąd (diagnostyka)</div><div style="font-size:13.5px;">${(e && e.message) ? e.message : String(e)}</div></div>`));
     }
     submitBtn.disabled = false; submitBtn.style.opacity = "1";
   };
@@ -855,8 +855,15 @@ Odpowiedz WYŁĄCZNIE w formacie JSON, bez markdown, bez code fences, w następu
       messages: [{ role:"user", content: `Tekst ucznia:\n\n${userText}` }]
     })
   });
-  const data = await response.json();
-  const textBlock = data.content.find(c=>c.type==="text");
+  const rawText = await response.text();
+  if(!response.ok){
+    throw new Error(`HTTP ${response.status}: ${rawText.slice(0,300)}`);
+  }
+  let data;
+  try{ data = JSON.parse(rawText); }
+  catch(e){ throw new Error(`Niepoprawny JSON od serwera: ${rawText.slice(0,300)}`); }
+  const textBlock = data.content && data.content.find(c=>c.type==="text");
+  if(!textBlock){ throw new Error(`Brak tekstu w odpowiedzi: ${JSON.stringify(data).slice(0,300)}`); }
   let clean = textBlock.text.replace(/```json|```/g,"").trim();
   return JSON.parse(clean);
 }
@@ -1003,7 +1010,7 @@ function renderMowienieTask(main, taskId){
       saveProgress(PROGRESS);
     }catch(e){
       resultContainer.innerHTML = "";
-      resultContainer.appendChild(el(`<div class="exceptions-box"><div class="lbl">⚠ Błąd</div><div style="font-size:13.5px;">Nie udało się połączyć z AI. Sprawdź połączenie z internetem i spróbuj ponownie.</div></div>`));
+      resultContainer.appendChild(el(`<div class="exceptions-box"><div class="lbl">⚠ Błąd (diagnostyka)</div><div style="font-size:13.5px;">${(e && e.message) ? e.message : String(e)}</div></div>`));
     }
     submitBtn.disabled = false; submitBtn.style.opacity = "1";
   };
@@ -1025,8 +1032,15 @@ Odpowiedz WYŁĄCZNIE w formacie JSON, bez markdown, bez code fences:
       messages: [{ role:"user", content: `Transkrypcja wypowiedzi ucznia:\n\n${transcript}` }]
     })
   });
-  const data = await response.json();
-  const textBlock = data.content.find(c=>c.type==="text");
+  const rawText = await response.text();
+  if(!response.ok){
+    throw new Error(`HTTP ${response.status}: ${rawText.slice(0,300)}`);
+  }
+  let data;
+  try{ data = JSON.parse(rawText); }
+  catch(e){ throw new Error(`Niepoprawny JSON od serwera: ${rawText.slice(0,300)}`); }
+  const textBlock = data.content && data.content.find(c=>c.type==="text");
+  if(!textBlock){ throw new Error(`Brak tekstu w odpowiedzi: ${JSON.stringify(data).slice(0,300)}`); }
   let clean = textBlock.text.replace(/```json|```/g,"").trim();
   return JSON.parse(clean);
 }
