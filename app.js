@@ -5,7 +5,7 @@
 // URL Cloudflare Worker, который проксирует запросы к Claude API
 // (ключ хранится в секретах Worker'а, не на фронтенде).
 // ЗАМЕНИ на свой реальный адрес после деплоя Worker'а в Cloudflare.
-const WORKER_API_URL = "https://polski-b1-worker.YOUR-SUBDOMAIN.workers.dev";
+const WORKER_API_URL = "https://polski-b1-worker.alena-trofimenko-ss.workers.dev/";
 
 const STORAGE_KEY = "polski_b1_progress_v1";
 
