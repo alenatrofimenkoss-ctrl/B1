@@ -1,4 +1,4 @@
-const CACHE_NAME = "polski-b1-v3";
+const CACHE_NAME = "polski-b1-v4";
 const FILES_TO_CACHE = [
   "./index.html",
   "./app.js",
@@ -39,17 +39,14 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   e.respondWith(
-    caches.match(e.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(e.request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached);
-    })
+    fetch(e.request)
+      .then((response) => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
